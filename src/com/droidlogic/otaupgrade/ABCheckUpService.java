@@ -161,12 +161,12 @@ public class ABCheckUpService extends Service {
                     return;
                 }
                 String[] headers=urlparams[1].split("&");
-                UpdateEngine engine = new UpdateEngine(ABCheckUpService.this);
-                UpdateEngineCallback callback = new UpdateEngineCallback(ABCheckUpService.this);
-                engine.bind(callback.asBinder());
-                Log.d(TAG, "url:"+urlparams[0]+"  params="+headers.length);
-                engine.cancel();
-                engine.applyPayload(urlparams[0],0L,0L,headers);
+                //UpdateEngine engine = new UpdateEngine(ABCheckUpService.this);
+                //UpdateEngineCallback callback = new UpdateEngineCallback(ABCheckUpService.this);
+                //engine.bind(callback.asBinder());
+                //Log.d(TAG, "url:"+urlparams[0]+"  params="+headers.length);
+                //engine.cancel();
+                //engine.applyPayload(urlparams[0],0L,0L,headers);
             }
         }
     };

@@ -41,7 +41,6 @@ import com.amlogic.update.OtaUpgradeUtils;
 
 import java.io.File;
 
-
 public class InstallPackage extends LinearLayout implements OtaUpgradeUtils.ProgressListener {
     private ProgressBar mProgressBar;
     private LinearLayout mOutputField;
@@ -96,24 +95,27 @@ public class InstallPackage extends LinearLayout implements OtaUpgradeUtils.Prog
                         mPref.write2File();
                     }
                     mDismiss.setEnabled(false);
-                    TextView tv = (TextView) mInflater.inflate(R.layout.medium_text,
-                                null);
-                    tv.setText(R.string.install_prepare);
-                    mOutputField.addView(tv);
-                    new Thread(new Runnable() {
-                            @Override
-                            public void run() {
-                                mPref.copyBKFile();
-                                mUpdateUtils.setDeleteSource(isDelUpdate);
-                                mUpdateUtils.upgrade(new File(mPackagePath),
-                                    InstallPackage.this, mUpdateMode);
-                            }
-                        }).start();
+
+                    if (mProgressBar.getProgress() == 0) {
+                        TextView tv = (TextView) mInflater.inflate(R.layout.medium_text,
+                                    null);
+                        tv.setText(R.string.install_prepare);
+                        mOutputField.addView(tv);
+                        new Thread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    mPref.copyBKFile();
+                                    mUpdateUtils.setDeleteSource(isDelUpdate);
+                                    mUpdateUtils.upgrade(new File(mPackagePath),
+                                        InstallPackage.this, mUpdateMode);
+                                }
+                            }).start();
+                    }
                 }
             });
     }
 
-    public void setParamter(int updateMode) {
+    public void setParameter(int updateMode) {
         mUpdateMode = updateMode;
     }
 

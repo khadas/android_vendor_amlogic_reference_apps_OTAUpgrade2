@@ -25,11 +25,13 @@ import android.util.Log;
 public class UpdateEngine {
     private static final String TAG = "UpdateEngine";
     int TRANSACTION_PAYLOAD                    = IBinder.FIRST_CALL_TRANSACTION;
-    int TRANSACTION_BIND               = IBinder.FIRST_CALL_TRANSACTION + 1;
-    int TRANSACTION_SUSPEND               = IBinder.FIRST_CALL_TRANSACTION + 2;
-    int TRANSACTION_RESUME             = IBinder.FIRST_CALL_TRANSACTION + 3;
-    int TRANSACTION_CANCEL             = IBinder.FIRST_CALL_TRANSACTION + 4;
-    int TRANSACTION_RESET_STATUS             = IBinder.FIRST_CALL_TRANSACTION + 5;
+    int TRANSACTION_BIND               = IBinder.FIRST_CALL_TRANSACTION + 2;
+    int TRANSCATION_UNBIND             = IBinder.FIRST_CALL_TRANSACTION + 3;
+    int TRANSACTION_SUSPEND               = IBinder.FIRST_CALL_TRANSACTION + 4;
+    int TRANSACTION_RESUME             = IBinder.FIRST_CALL_TRANSACTION + 5;
+    int TRANSACTION_CANCEL             = IBinder.FIRST_CALL_TRANSACTION + 6;
+    int TRANSACTION_RESET_STATUS             = IBinder.FIRST_CALL_TRANSACTION + 7;
+    int TRANSACTION_VERIFYPAYLOADAPPLICABLE   = IBinder.FIRST_CALL_TRANSACTION + 8;
     private static final String UPDATE_TOKEN         = "android.os.IUpdateEngine";
     public static final int REMOTE_EXCEPTION        = -0xffff;
     private Context mContxt;
@@ -88,6 +90,7 @@ public class UpdateEngine {
             } catch (RemoteException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
+            } catch (IllegalArgumentException ex) {
             }
 
         }
@@ -138,7 +141,7 @@ public class UpdateEngine {
                 Parcel data=Parcel.obtain();
                 Parcel reply=Parcel.obtain();
                 data.writeInterfaceToken(UPDATE_TOKEN);
-                mIBinder.transact(TRANSACTION_CANCEL,
+                mIBinder.transact(TRANSACTION_RESET_STATUS,
                         data, reply, 0);
                 int result = reply.readInt();
                 reply.recycle();

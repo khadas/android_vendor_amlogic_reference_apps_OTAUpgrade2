@@ -63,6 +63,10 @@ public class UpdateService extends Service {
     public static final int CHECK_UPGRADE_OK = 103;
     public static final int TASK_ID_CHECKING = 101;
     public static final int TASK_ID_DOWNLOAD = 102;
+    public static final int STOP_BY_NET = 1;
+    public static final int STOP_BY_USER = 2;
+    public static final int STOP_BY_UNKNOWN = 0;
+    private int stopReason = -1;
     private Timer timer = null;
     private UpdateTasks mCheckingTask;
     private UpdateTasks mDownloadTask;
@@ -166,7 +170,7 @@ public class UpdateService extends Service {
             return b;
         }
 
-        public void setTaskPause(int taskId) {
+        public void setTaskPause(int taskId,int resason) {
             switch (taskId) {
             case TASK_ID_CHECKING:
                 mCheckingTask.pause();
@@ -175,7 +179,7 @@ public class UpdateService extends Service {
 
             case TASK_ID_DOWNLOAD:
                 mDownloadTask.pause();
-
+                stopReason = resason;
                 break;
             }
         }
@@ -189,12 +193,14 @@ public class UpdateService extends Service {
 
             case TASK_ID_DOWNLOAD:
                 mDownloadTask.resume();
-
+                stopReason = -1;
                 break;
             }
         }
-
-        public int getTaskRunnningStatus(int taskId) {
+        public int getPauseReason () {
+            return stopReason;
+        }
+        public int getTaskRunningStatus(int taskId) {
             int status = -1;
 
             switch (taskId) {
@@ -262,17 +268,18 @@ public class UpdateService extends Service {
 
                 break;
             }
-
+//Log.d(TAG,"getProgress"+progress);
             return progress;
         }
 
         public void startTask(int taskId) {
             switch (taskId) {
             case TASK_ID_CHECKING:
-                Log.v(TAG, "status=" + mDownloadTask.getRunningStatus());
+                Log.v(TAG, "startTask status=" + mDownloadTask.getRunningStatus());
 
                 if (mDownloadTask.getRunningStatus() != UpdateTasks.RUNNING_STATUS_UNSTART) {
                     mDownloadTask.reset();
+                    stopReason = -1;
                 }
 
                 if (mCheckingTask.getRunningStatus() == UpdateTasks.RUNNING_STATUS_UNSTART) {
@@ -282,8 +289,9 @@ public class UpdateService extends Service {
                 break;
 
             case TASK_ID_DOWNLOAD:
-
+                Log.d(TAG,"startTask TASK_ID_DOWNLOAD"+mDownloadTask.getRunningStatus());
                 if (mDownloadTask.getRunningStatus() != UpdateTasks.RUNNING_STATUS_RUNNING) {
+                    stopReason = -1;
                     mDownloadTask.start();
                 }
 

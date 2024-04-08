@@ -205,7 +205,7 @@ public class PrefUtils implements DownloadUpdateTask.CheckPathCallBack{
             return ( "true" ).equals ( auto );
         }
 
-        private ArrayList<File> getExternalStorageListOnN(){
+        private ArrayList<File> getExternalStorageListSystemAPI(){
             Class<?> volumeInfoC = null;
             Method getvolume = null;
             Method isMount = null;
@@ -236,7 +236,7 @@ public class PrefUtils implements DownloadUpdateTask.CheckPathCallBack{
         }
         public ArrayList<File> getStorageList(boolean extern) {
 
-            if ( Build.VERSION.SDK_INT >= 26 ) {
+            if ( Build.VERSION.SDK_INT >= 26 && Build.VERSION.SDK_INT < 29 ) {
                 Class<?>  fileListClass = null;
                 Method getdev = null;
                 ArrayList<File> devList = new ArrayList<File>();
@@ -262,12 +262,12 @@ public class PrefUtils implements DownloadUpdateTask.CheckPathCallBack{
                     return devList;
                 }
             }else if(extern) {
-                return getExternalStorageListOnN();
+                return getExternalStorageListSystemAPI();
             }else {
-                return getMainDeviceListonN();
+                return getMainDeviceListSystemAPI();
             }
         }
-        private ArrayList<File> getMainDeviceListonN(){
+        private ArrayList<File> getMainDeviceListSystemAPI(){
             Class<?> volumeInfoC = null;
             Method getvolume = null;
             Method isMount = null;
@@ -332,7 +332,7 @@ public class PrefUtils implements DownloadUpdateTask.CheckPathCallBack{
 
         }
         public String getTransPath(String inPath) {
-            if ( Build.VERSION.SDK_INT >= 26 ) {
+            if ( Build.VERSION.SDK_INT >= 26 && Build.VERSION.SDK_INT < 29 ) {
                 Class<?>  fileListClass = null;
                 Method getdev = null;
                 String outPath = inPath;

@@ -187,7 +187,7 @@ public class MainActivity extends Activity implements OnClickListener {
         InstallPackage dlgView = (InstallPackage) inflater.inflate(R.layout.install_ota,
                 null, false);
         dlgView.setPackagePath(filename);
-        dlgView.setParamter(UpdateMode);
+        dlgView.setParameter(UpdateMode);
         dlg.setContentView(dlgView);
         dlg.setCancelable(false);
         dlg.findViewById(R.id.confirm_cancel).setOnClickListener(new View.OnClickListener() {
@@ -307,7 +307,7 @@ public class MainActivity extends Activity implements OnClickListener {
 
         case R.id.btn_locale_certern:
             String fullname = filepath.getText().toString();
-            if ( fullname.lastIndexOf("/") > 0 && (filename != null) && (filename.length() > 0)) {
+            if ( fullname.lastIndexOf("/") > 0 && (filename != null) && (filename.length() > 0) && Build.VERSION.SDK_INT < 28 ) {
                 if (mWipeDate == null)
                     UpdateMode = mPreference.createAmlScript(fullname, false, false);
                 else
@@ -321,8 +321,10 @@ public class MainActivity extends Activity implements OnClickListener {
                 }
 
                 UpdateDialog(fullname);
-            } else {
+            } else if( fullname == null || filename.length() == 0 ) {
                 Toast.makeText(this, getString(R.string.file_not_exist), 2000).show();
+            } else {
+                UpdateDialog(fullname);
             }
             break;
 
@@ -372,8 +374,8 @@ public class MainActivity extends Activity implements OnClickListener {
 
         try {
             InputStream in = getResources().getAssets().open(fileName);
-            int lenght = in.available();
-            byte[] buffer = new byte[lenght];
+            int length = in.available();
+            byte[] buffer = new byte[length];
             in.read(buffer);
             result = getString(buffer,"UTF-8");
         } catch (Exception e) {

@@ -64,7 +64,7 @@ import com.amlogic.update.OtaUpgradeUtils;
 import com.amlogic.update.OtaUpgradeUtils.ProgressListener;
 
 import com.amlogic.update.UpdateTasks;
-
+import com.amlogic.update.util.MD5;
 import com.droidlogic.otaupgrade.UpdateService.uiBinder;
 
 import java.io.File;
@@ -75,8 +75,9 @@ import java.io.IOException;
 
 import java.util.HashSet;
 import java.util.Set;
-
-
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 /**
  * @ClassName UpdateActivity
  * @Description TODO
@@ -117,7 +118,7 @@ public class UpdateActivity extends Activity {
                             mCombineBtn.getTag()
                                            .equals(Integer.valueOf(
                                     R.string.download_pause))) {
-                        mServiceBinder.setTaskPause(UpdateService.TASK_ID_DOWNLOAD);
+                        mServiceBinder.setTaskPause(UpdateService.TASK_ID_DOWNLOAD,UpdateService.STOP_BY_NET);
                         Toast.makeText(UpdateActivity.this,
                             R.string.sdcard_info, 20000).show();
                         UpdateActivity.this.finish();
@@ -134,9 +135,24 @@ public class UpdateActivity extends Activity {
 
                 Intent extrasIntent = getIntent();
                 String action = extrasIntent.getAction();
-                boolean b = mServiceBinder.getTaskRunnningStatus(UpdateService.TASK_ID_DOWNLOAD) == UpdateTasks.RUNNING_STATUS_UNSTART;
+                boolean b = mServiceBinder.getTaskRunningStatus(UpdateService.TASK_ID_DOWNLOAD) == UpdateTasks.RUNNING_STATUS_UNSTART;
                 long lastDownSize = mServiceBinder.getTaskProgress(UpdateService.TASK_ID_DOWNLOAD);
-
+                Log.d(TAG,"lastDownSize"+lastDownSize);
+                DownloadResult result = (DownloadResult) mServiceBinder.getTaskResult(UpdateService.TASK_ID_DOWNLOAD);
+                if (result != null) {
+                    HashMap<String,String> map = result.getFileListWithMd5();
+                    if ((map != null) && (map.size() > 0)) {
+                        Iterator<Map.Entry<String, String>> entryIterator = map.entrySet().iterator();
+                        while (entryIterator.hasNext()) {
+                            Map.Entry<String, String> next = entryIterator.next();
+                            Log.d(TAG,"key=" + next.getKey() + " value=" + next.getValue());
+                            if (!MD5.checkMd5(next.getValue(),next.getKey())) {
+                                setDownloadView(mPreference.getDescri());
+                                return ;
+                            }
+                        }
+                    }
+                }
                 if ((lastDownSize == 0) && b) {
                     mServiceBinder.startTask(UpdateService.TASK_ID_CHECKING);
                     setCheckView();
@@ -150,6 +166,7 @@ public class UpdateActivity extends Activity {
                     mPercent.setVisibility(View.VISIBLE);
                     mPercent.setText(R.string.download_error);
                 } else if (UpdateService.ACTION_DOWNLOAD_SUCCESS.equals(action)) {
+                    Log.d(TAG,"receive msg action download_success");
                     setDownloadView(UpdateActivity.this.getResources()
                                                        .getString(R.string.download_err));
                     mPercent.setVisibility(View.VISIBLE);
@@ -176,20 +193,19 @@ public class UpdateActivity extends Activity {
                         Toast.makeText(context, R.string.net_status_change,
                                 1).show();
                         if (Integer.valueOf(R.string.download_pause).equals(mCombineBtn.getTag())) {
-                            mCombineBtn
-                                .setText(R.string.download_resume);
-                            mCombineBtn
-                                .setTag(Integer
-                                        .valueOf(R.string.download_resume));
+
                             if (mServiceBinder != null) {
-                                mServiceBinder.setTaskPause(UpdateService.TASK_ID_DOWNLOAD);
+                                mPercent.setVisibility(View.GONE);
+                                mCombineBtn.setText(R.string.download_resume);
+                                mCombineBtn.setTag(Integer.valueOf(R.string.download_resume));
+                                mServiceBinder.setTaskPause(UpdateService.TASK_ID_DOWNLOAD,UpdateService.STOP_BY_NET);
                             }
                         }
                     }else if ((activeInfo != null) && activeInfo.isConnected()&&Integer.valueOf(R.string.download_resume).equals(mCombineBtn.getTag())) {
-                        mCombineBtn.setText(R.string.download_pause);
-                        mCombineBtn.setTag(Integer
-                                        .valueOf(R.string.download_pause));
-                        if (mServiceBinder != null) {
+
+                        if ((mServiceBinder != null) && mServiceBinder.getPauseReason() != UpdateService.STOP_BY_USER) {
+                            mCombineBtn.setText(R.string.download_pause);
+                            mCombineBtn.setTag(Integer.valueOf(R.string.download_pause));
                             mServiceBinder.setTaskResume(UpdateService.TASK_ID_DOWNLOAD);
                         }
                     }
@@ -224,7 +240,7 @@ public class UpdateActivity extends Activity {
     public void onBackPressed() {
         // super.onBackPressed();
         if ((mServiceBinder != null) &&
-                (mServiceBinder.getTaskRunnningStatus(
+                (mServiceBinder.getTaskRunningStatus(
                     UpdateService.TASK_ID_DOWNLOAD) == DownloadUpdateTask.RUNNING_STATUS_RUNNING)) {
             Intent i = new Intent(Intent.ACTION_MAIN);
             i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -336,7 +352,12 @@ public class UpdateActivity extends Activity {
             }
         } else {
             //data test now
-            saveFilePath = new File(filePath).getParentFile();
+            File updateFile = new File(filePath);
+            if (updateFile.exists()) {
+                  updateFile.delete();
+            }
+            saveFilePath = updateFile.getParentFile();
+            //Log.d("TAG","saveFilePath"+saveFilePath+"/"+saveFilePath.getFreeSpace());
             freeSpace = saveFilePath.getFreeSpace();
             if ((mDownSize > 0) &&
                     (mDownSize > freeSpace)) {
@@ -401,14 +422,20 @@ public class UpdateActivity extends Activity {
                     if (Integer.valueOf(R.string.download_download).equals(tag) &&
                             !enableBtn) {
                         if (handleSDcardSituation()) {
+                            mCombineBtn.setEnabled(false);
+                            mCancel.requestFocus();
                             mServiceBinder.startTask(UpdateService.TASK_ID_DOWNLOAD);
                         }
                     } else if (Integer.valueOf(R.string.download_pause)
                                           .equals(tag) && !enableBtn) {
-                        mServiceBinder.setTaskPause(UpdateService.TASK_ID_DOWNLOAD);
+                        mServiceBinder.setTaskPause(UpdateService.TASK_ID_DOWNLOAD,UpdateService.STOP_BY_NET);
                     } else if (Integer.valueOf(R.string.download_resume)
                                           .equals(tag) && !enableBtn) {
                         if (handleSDcardSituation()) {
+                            mPercent.setText(R.string.install_prepare);
+                            mPercent.setVisibility(View.VISIBLE);
+                            mCombineBtn.setEnabled(false);
+                            mCancel.requestFocus();
                             mServiceBinder.setTaskResume(UpdateService.TASK_ID_DOWNLOAD);
                         }
                     } else if (Integer.valueOf(R.string.download_update)
@@ -427,7 +454,7 @@ public class UpdateActivity extends Activity {
                                 null, false);
                         dlgView.setPackagePath(mPreference.getUpdatePath());
                         dlgView.setDelParam(true);
-                        dlgView.setParamter(UpdateMode);
+                        dlgView.setParameter(UpdateMode);
                         dlg.setCancelable(false);
                         dlg.setContentView(dlgView);
                         dlg.findViewById(R.id.confirm_cancel).setOnClickListener(new View.OnClickListener() {
@@ -470,7 +497,7 @@ public class UpdateActivity extends Activity {
         long lastProgress = -1;
 
         protected void loop() {
-            int status = mServiceBinder.getTaskRunnningStatus(UpdateService.TASK_ID_DOWNLOAD);
+            int status = mServiceBinder.getTaskRunningStatus(UpdateService.TASK_ID_DOWNLOAD);
 
             switch (status) {
             case DownloadUpdateTask.RUNNING_STATUS_UNSTART:
@@ -488,29 +515,23 @@ public class UpdateActivity extends Activity {
                 break;
 
             case DownloadUpdateTask.RUNNING_STATUS_RUNNING:
-                mHandler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            mCombineBtn.setText(R.string.download_pause);
-                            mCombineBtn.setTag(Integer.valueOf(
-                                    R.string.download_pause));
-                        }
-                    });
-
 
                 long progress = mServiceBinder.getTaskProgress(UpdateService.TASK_ID_DOWNLOAD);
-
+                //Log.d(TAG,"lastProgress------------>"+lastProgress+"/progress"+progress);
                 if (lastProgress < progress) {
                     lastProgress = progress;
                     mHandler.post(new Runnable() {
                             @Override
                             public void run() {
-                                if (PrefUtils.DEBUG) {
-                                    Log.d(TAG,
-                                        "progress fileSize:" + mDownSize +
-                                        " lastProgress:" + lastProgress);
-                                }
-
+                            if (false && PrefUtils.DEBUG) {
+                                Log.d(TAG,
+                                    "progress fileSize:" + mDownSize +
+                                    " lastProgress:" + lastProgress);
+                           }
+                            mCombineBtn.setEnabled(true);
+                            mCombineBtn.setText(R.string.download_pause);
+                            mCombineBtn.setTag(Integer.valueOf(
+                                    R.string.download_pause));
                                 if (mDownSize > 0 && lastProgress > 10*1024) {
                                     mProgress.setVisibility(View.VISIBLE);
                                     mProgress.setMax((int)(mDownSize/1024));
@@ -542,6 +563,7 @@ public class UpdateActivity extends Activity {
                 mHandler.post(new Runnable() {
                         @Override
                         public void run() {
+                            mPercent.setVisibility(View.GONE);
                             mCombineBtn.setText(R.string.download_resume);
                             mCombineBtn.setTag(Integer.valueOf(
                                     R.string.download_resume));
@@ -552,7 +574,7 @@ public class UpdateActivity extends Activity {
                 break;
 
             case DownloadUpdateTask.RUNNING_STATUS_FINISH:
-
+                Log.d(TAG,"downlaodtask finish");
                 int errorCode = mServiceBinder.getTaskErrorCode(UpdateService.TASK_ID_DOWNLOAD);
 
                 if (errorCode == DownloadUpdateTask.NO_ERROR) {
@@ -588,7 +610,7 @@ public class UpdateActivity extends Activity {
 
     private class QueryCheck extends QueryThread {
         protected void loop() {
-            int status = mServiceBinder.getTaskRunnningStatus(UpdateService.TASK_ID_CHECKING);
+            int status = mServiceBinder.getTaskRunningStatus(UpdateService.TASK_ID_CHECKING);
 
             switch (status) {
             case CheckUpdateTask.RUNNING_STATUS_UNSTART:

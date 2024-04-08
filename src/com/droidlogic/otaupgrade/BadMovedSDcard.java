@@ -42,7 +42,7 @@ public class BadMovedSDcard extends Activity {
     public static final String TAG = "SDCARDACTION";
     public static final int SDCANCEL = 1;
     public static final int SDOK = 2;
-    private Button mCancleBtn;
+    private Button mCancelBtn;
     private Button mSureBtn;
     private boolean mReg = false;
     private View.OnClickListener l = new View.OnClickListener() {
@@ -83,9 +83,9 @@ public class BadMovedSDcard extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.mid);
-        mCancleBtn = (Button) findViewById(R.id.sdcard_cancel);
+        mCancelBtn = (Button) findViewById(R.id.sdcard_cancel);
         mSureBtn = (Button) findViewById(R.id.sdcard_ok);
-        mCancleBtn.setOnClickListener(l);
+        mCancelBtn.setOnClickListener(l);
         mSureBtn.setOnClickListener(l);
     }
 
